@@ -2,7 +2,8 @@ import { searchNews } from "@/lib/news";
 
 export async function GET(request) {
   const query = new URL(request.url).searchParams.get("q");
-  if (!query) {
+  if (!query || !query.trim()) {
+    // Reject missing/blank queries before spending any GNews quota.
     return Response.json({ error: "Missing query ?q=" }, { status: 400 });
   }
   try {

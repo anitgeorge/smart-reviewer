@@ -44,9 +44,13 @@ try {
   );
   console.log(`searches.fetchedAt: TTL ${SEARCH_TTL_SECONDS}s ok`);
 
-  // 4. Fast cache lookup by query.
-  await searches.createIndex({ query: 1 }, { name: "query_lookup" });
-  console.log("searches.query: lookup index ok");
+  // 4. One cache document per normalized query — unique so concurrent cold
+  //    upserts can't create duplicates (the loser hits E11000, handled in
+  //    lib/store.mjs saveSearch). Drop any prior non-unique index on this key
+  //    first so the script stays idempotent across upgrades.
+  await searches.dropIndex("query_lookup").catch(() => {});
+  await searches.createIndex({ query: 1 }, { name: "query_unique", unique: true });
+  console.log("searches.query: unique index ok");
 
   console.log("index setup: complete");
 } finally {
