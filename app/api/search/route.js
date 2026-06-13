@@ -5,6 +5,15 @@ export async function GET(request) {
   if (!query) {
     return Response.json({ error: "Missing query ?q=" }, { status: 400 });
   }
-  const articles = await searchNews(query);
-  return Response.json({ articles });
+  try {
+    const { articles, cached } = await searchNews(query);
+    return Response.json({ articles, cached });
+  } catch (err) {
+    // GNews failure on a cache miss (§10): clean error, nothing cached, retry next time.
+    console.error("search failed:", err.message);
+    return Response.json(
+      { error: "Couldn't fetch fresh articles, please try again." },
+      { status: 502 },
+    );
+  }
 }
